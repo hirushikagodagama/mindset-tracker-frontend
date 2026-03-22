@@ -33,7 +33,10 @@ export default function PricingPage() {
   useEffect(() => {
     getPublicPricing()
       .then((data) => {
-        if (data) setPricing((prev) => ({ ...prev, ...data }));
+        if (data) {
+          console.log('✅ Pricing data loaded successfully:', data);
+          setPricing((prev) => ({ ...prev, ...data }));
+        }
       })
       .catch(console.error);
   }, []);

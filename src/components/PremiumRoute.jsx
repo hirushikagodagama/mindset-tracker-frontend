@@ -7,6 +7,10 @@ const PremiumRoute = ({ children, featureName = 'This feature' }) => {
   const { user, isAuthenticated, authLoading } = useAuth();
   const location = useLocation();
 
+  // Allow access to dashboard when returning from Paddle checkout with _ptxn so we can verify payment
+  const hasPtxn = new URLSearchParams(location.search).get('_ptxn');
+  const isPostPaymentRedirect = location.pathname === '/dashboard' && !!hasPtxn;
+
   if (authLoading && isAuthenticated) {
     return null;
   }
@@ -15,7 +19,7 @@ const PremiumRoute = ({ children, featureName = 'This feature' }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (!isPremiumUser(user)) {
+  if (!isPremiumUser(user) && !isPostPaymentRedirect) {
     return (
       <Navigate
         to="/pricing"

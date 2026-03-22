@@ -10,31 +10,31 @@ import { getAiCoach } from '../services/aiService';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { verifyCheckout } from '../services/paymentService';
 import { useAuth } from '../context/AuthContext';
+import { isPremiumUser, getPremiumFeatureMessage } from '../utils/access';
 
 const DashboardPage = () => {
   const { habits, checks, mentalState } = useHabits();
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [coach, setCoach] = useState(null);
   const [coachLoading, setCoachLoading] = useState(true);
   const [coachError, setCoachError] = useState('');
+  const [paymentVerifying, setPaymentVerifying] = useState(false);
 
   // Handle Paddle checkout redirect with _ptxn
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const ptxn = searchParams.get('_ptxn');
     if (ptxn) {
-      // Remove query params to avoid re-verifying on refresh
+      setPaymentVerifying(true);
       navigate('/dashboard', { replace: true });
-      
       verifyCheckout(ptxn)
-        .then(() => {
-          refreshUser(); // Updates context, unlocking premium features
-        })
+        .then(() => refreshUser())
         .catch((err) => {
-          console.error("Failed to verify Paddle checkout", err);
-        });
+          console.error('Failed to verify Paddle checkout', err);
+        })
+        .finally(() => setPaymentVerifying(false));
     }
   }, [location.search, navigate, refreshUser]);
 
@@ -43,7 +43,16 @@ const DashboardPage = () => {
     [habits, checks, mentalState]
   );
 
+  // Fetch AI Coach only for premium users, and only after payment verification completes (when _ptxn was present)
   useEffect(() => {
+    if (!isPremiumUser(user) || paymentVerifying) {
+      if (!isPremiumUser(user)) {
+        setCoach(null);
+        setCoachLoading(false);
+      }
+      return;
+    }
+
     let isMounted = true;
 
     const fetchCoach = async () => {
@@ -74,7 +83,7 @@ const DashboardPage = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user, paymentVerifying]);
 
   const topHabits = useMemo(() => {
     const now = new Date();
@@ -129,7 +138,11 @@ const DashboardPage = () => {
           )}
         </div>
 
-        {coachLoading ? (
+        {paymentVerifying ? (
+          <div className="empty-note">Completing your upgrade…</div>
+        ) : !isPremiumUser(user) ? (
+          <div className="empty-note">{getPremiumFeatureMessage('AI Coach')}</div>
+        ) : coachLoading ? (
           <div className="empty-note">Generating your motivation message...</div>
         ) : coach ? (
           <div className="coach-body">

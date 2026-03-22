@@ -22,8 +22,17 @@ api.interceptors.request.use(
  * GET /api/v1/pricing – public pricing settings (new endpoint)
  */
 export const getPublicPricing = async () => {
-  const response = await api.get('/pricing');
-  return response.data.data.pricing;
+  try {
+    const response = await api.get('/pricing');
+    const pricing = response.data?.data?.pricing;
+    if (!pricing) {
+      console.warn('Pricing data missing in API response:', response.data);
+    }
+    return pricing;
+  } catch (error) {
+    console.error('Error fetching public pricing:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 /**

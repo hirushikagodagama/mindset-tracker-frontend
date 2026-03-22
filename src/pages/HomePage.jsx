@@ -599,8 +599,10 @@ export default function HomePage() {
     getPublicPricing()
       .then((data) => {
         if (active && data) {
-          // api.js getPublicPricing() returns the pricing object directly
+          console.log('✅ Pricing data loaded successfully:', data);
           setPricing((prev) => ({ ...prev, ...data }));
+        } else if (active) {
+          console.warn('⚠️  Pricing data was empty or invalid:', data);
         }
       })
       .catch((error) => {
